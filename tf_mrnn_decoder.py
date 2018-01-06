@@ -8,9 +8,8 @@ import numpy as np
 import os
 import logging
 import copy
-
-from .common_utils import CommonUtiler
-from .tf_mrnn_model import mRNNModel
+from helper import *
+from tf_mrnn_model import mRNNModel
 
 logger = logging.getLogger('TfMrnnDecoder')
 logging.basicConfig(
@@ -85,20 +84,21 @@ class mRNNDecoder(object):
     
     # Get the initial logit and state
     logit_init, state_init = self.get_logit_init(visual_features)
+
     logit_init = np.squeeze(logit_init)
     assert logit_init.shape[0] == self.config.vocab_size and len(
         logit_init.shape) == 1
     logit_init = self.cu.softmax(logit_init)
     logit_init_order = np.argsort(-logit_init)
-    for ind_b in xrange(beam_size):
+    for ind_b in range(beam_size):
       cand = {}
       cand['indexes'] = [logit_init_order[ind_b]]
       cand['score'] = -np.log(logit_init[logit_init_order[ind_b]])
       cand['state'] = state_init
       cur_best_cand.append(cand)
-      
+
     # Expand the current best candidates until max_steps or no candidate
-    for i in xrange(max_steps):
+    for i in range(max_steps):
       # move candidates end with <bos> to good_sentences or remove it
       cand_left = []
       for cand in cur_best_cand:
@@ -120,7 +120,7 @@ class mRNNDecoder(object):
         logit = np.squeeze(logit)
         logit = self.cu.softmax(logit)
         logit_order = np.argsort(-logit)
-        for ind_b in xrange(beam_size):
+        for ind_b in range(beam_size):
           cand_e = copy.deepcopy(cand)
           cand_e['indexes'].append(logit_order[ind_b])
           cand_e['score'] -= np.log(logit[logit_order[ind_b]])

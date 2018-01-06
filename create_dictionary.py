@@ -5,9 +5,6 @@ import os
 import logging
 import re
 import sys
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-
 from helper import *
 
 

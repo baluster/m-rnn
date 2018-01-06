@@ -7,9 +7,6 @@ import numpy as np
 import logging
 import tensorflow as tf
 from tensorflow.python.ops import math_ops
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-
 from tf_mrnn_model import mRNNModel
 from helper import *
 from config import *
@@ -44,7 +41,7 @@ flags.DEFINE_string(
   )
 flags.DEFINE_string(
   "model_name", 
-  "mrnn_GRU_mscoco", 
+  "mrnn_LSTM_mscoco", 
   "name of the model"
   )
 # Vocabulary path
@@ -161,31 +158,29 @@ def main(unused_args):
           model_root=FLAGS.model_root)
         models.append(m)
 
-    print(models)
+    hdlr = logging.FileHandler(os.path.join(m.model_dir, 'log.txt'))
+    hdlr.setLevel(logging.INFO)
+    hdlr.setFormatter(logging.Formatter(formatter_log))
+    logger.addHandler(hdlr)
+    
+    if FLAGS.pre_trained_model_path:
+      models[0].saver.restore(session, FLAGS.pre_trained_model_path)
+      logger.info('Continue to train from %s', FLAGS.pre_trained_model_path)
+    else:
+      tf.global_variables_initializer().run()
 
-    # hdlr = logging.FileHandler(os.path.join(m.model_dir, 'log.txt'))
-    # hdlr.setLevel(logging.INFO)
-    # hdlr.setFormatter(logging.Formatter(formatter_log))
-    # logger.addHandler(hdlr)
+    iters_done = 0
+    data_provider = mRNNCocoBucketDataProvider(FLAGS.anno_files_path.split(':'),
+      FLAGS.vocab_path, config.vocab_size, FLAGS.vf_dir, config.vf_size)
     
-    # if FLAGS.pre_trained_model_path:
-    #   models[0].saver.restore(session, FLAGS.pre_trained_model_path)
-    #   logger.info('Continue to train from %s', FLAGS.pre_trained_model_path)
-    # else:
-    #   tf.global_variables_initializer().run()
-
-    # iters_done = 0
-    # data_provider = mRNNCocoBucketDataProvider(FLAGS.anno_files_path.split(':'),
-    #   FLAGS.vocab_path, config.vocab_size, FLAGS.vf_dir, config.vf_size)
+    for i in range(config.num_epoch):
+      train_cost, iters_done = run_epoch(session, iters_done, config, models, 
+        data_provider, verbose=True)
+      logger.info("Train cost for epoch %d is %.3f" % (i, train_cost))
     
-    # for i in range(config.num_epoch):
-    #   train_cost, iters_done = run_epoch(session, iters_done, config, models, 
-    #     data_provider, verbose=True)
-    #   logger.info("Train cost for epoch %d is %.3f" % (i, train_cost))
-    
-    ## Save final copy of the model
-    # models[0].saver.save(session, os.path.join(m.variable_dir, 
-    #   'model_%d.ckpt' % iters_done))
+    # Save final copy of the model
+    models[0].saver.save(session, os.path.join(m.variable_dir, 
+      'model_%d.ckpt' % iters_done))
 
 
 if __name__ == "__main__":

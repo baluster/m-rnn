@@ -1,9 +1,5 @@
 """TEST for mRNN decoder for MS COCO dataset."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import time
 import sys
 import os
@@ -11,9 +7,8 @@ import numpy as np
 import logging
 import json
 import tensorflow as tf
-
-sys.path.append('./py_lib/')
-from common_utils import CommonUtiler
+from helper import *
+from config import *
 from tf_mrnn_decoder import mRNNDecoder
 
 logger = logging.getLogger('ExpMscoco')
@@ -33,7 +28,7 @@ flags.DEFINE_float("gpu_memory_fraction", 0.4, "Fraction of GPU memory to use")
 flags.DEFINE_string("model_root", 
     "./cache/models/mscoco", 
     "root of the tf mRNN model")
-flags.DEFINE_string("model_name", "mrnn_GRU_mscoco", "name of the model")
+flags.DEFINE_string("model_name", "mrnn_LSTM_mscoco", "name of the model")
 flags.DEFINE_string("eval_stat", 
     "10000 570001 10000", 
     "start_iter step_iter end_iter")
@@ -48,7 +43,7 @@ flags.DEFINE_string("vf_dir",
 # Validation annotation files
 flags.DEFINE_string(
     "anno_files_path", 
-    "./datasets/ms_coco/mscoco_anno_files/"
+    "./datasets/ms_coco/mscoco_anno"
     "anno_list_mscoco_crVal_m_RNN.npy",
     "Validation file annotations, multipy files should be seperated by ':'")
 # Beam search size
@@ -60,13 +55,12 @@ FLAGS = flags.FLAGS
 def main(unused_args):
   # Load model configuration
   cu = CommonUtiler()
-  config_path = os.path.join('./model_conf', FLAGS.model_name + '.py')
-  config = cu.load_config(config_path)
-      
+  config = ValConfig()
+
   # Evaluate trained models on val
   decoder = mRNNDecoder(config, FLAGS.model_name, FLAGS.vocab_path,
       gpu_memory_fraction=FLAGS.gpu_memory_fraction)
-  for i in xrange(*[int(x) for x in FLAGS.eval_stat.split()]):
+  for i in range(*[int(x) for x in FLAGS.eval_stat.split()]):
     model_path = os.path.join(FLAGS.model_root, FLAGS.model_name, 
         'variables', 'model_%d.ckpt' % i)
     while not os.path.exists(model_path):

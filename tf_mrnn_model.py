@@ -11,7 +11,6 @@ descriptions of images. In Proc. ICCV 2015.
 import numpy as np
 import os
 import logging
-
 from helper import *
 
 logger = logging.getLogger('TfMrnnModel')
@@ -59,8 +58,6 @@ class mRNNModel(object):
       rnn_cell_basic = tf.contrib.rnn.GRUCell(rnn_size)
     elif config.rnn_type == 'LSTM':
       rnn_cell_basic = tf.contrib.rnn.LSTMCell(rnn_size)
-      # rnn_cell_basic = tf.contrib.rnn.LSTMCell(rnn_size, 
-      #   use_peepholes=True)
     else:
       raise NameError("Unknown rnn type %s!" % config.rnn_type)
     if is_training and config.keep_prob_rnn < 1:
@@ -68,7 +65,7 @@ class mRNNModel(object):
           rnn_cell_basic, output_keep_prob=config.keep_prob_rnn)
     cell = tf.contrib.rnn.MultiRNNCell(
       [rnn_cell_basic for i in range(config.num_rnn_layers)])
-    state_size = cell.state_size
+    cell_state = cell.state_size[0]
     
     # Create word embeddings
     self._embedding = embedding = tf.get_variable("embedding", 
@@ -83,19 +80,18 @@ class mRNNModel(object):
       mm_size = config.mm_size
       # Run RNNs
       if flag_reset_state:
-        self._initial_state = initial_state = tf.placeholder(tf.float32, 
-            [batch_size, state_size])
+        inital_state_c = tf.placeholder(tf.float32, 
+          [batch_size, cell_state.c])
+        inital_state_h = tf.placeholder(tf.float32, 
+          [batch_size, cell_state.h])      
+        lstm_state_tuple = tf.contrib.rnn.LSTMStateTuple(inital_state_c, inital_state_h)
+        self._initial_state = initial_state = (lstm_state_tuple,)
       else:
         self._initial_state = initial_state = cell.zero_state(
             batch_size, tf.float32)
 
-      # inputs = [tf.squeeze(input_, [1])
-          # for input_ in tf.split(1, num_steps, inputs)]
       inputs = [tf.squeeze(input_, [1]) 
         for input_ in tf.split(inputs, num_steps, 1)]
-      # outputs_rnn, state = tf.nn.dynamic_rnn(cell, inputs, 
-        # initial_state=initial_state, 
-        # sequence_length=self._seq_lens)
       outputs_rnn, state = tf.contrib.rnn.static_rnn(cell, inputs, 
         initial_state=initial_state, 
         sequence_length=self._seq_lens)
@@ -138,9 +134,6 @@ class mRNNModel(object):
       inputs = [tf.squeeze(input_, [1]) 
         for input_ in tf.split(inputs, num_steps, 1)]
       # Run RNNs
-      # outputs_rnn, state = tf.nn.dynamic_rnn(cell, inputs, 
-      #   initial_state=initial_state, 
-      #   sequence_length=self._seq_lens)
       outputs_rnn, state = tf.contrib.rnn.static_rnn(cell, inputs, 
         initial_state=initial_state, 
         sequence_length=self._seq_lens)

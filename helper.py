@@ -267,9 +267,7 @@ class mRNNCocoBucketDataProvider(object):
         if verbose and (ind_a + 1) % 5000 == 0:
           logger.info('Load %d/%d annotation from file %s', ind_a + 1, 
               len(annos), anno_file_path)
-        
-        if (ind_a + 1) == 100:
-          break
+    
     logger.info('Load %d images, %d sentences from %d files, %d image failed', 
         len(self._data_queue), len(self._data_pointer), 
         len(self.anno_files_path), num_failed)
