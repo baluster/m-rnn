@@ -60,3 +60,5 @@ datasets/ms_coco/*
 .gitattributes
 external/tf_cnn_models/*
 trained_models/ms_coco/*
+*.ipynb
+results/*
