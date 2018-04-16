@@ -7,85 +7,54 @@ import numpy as np
 import logging
 import tensorflow as tf
 from tensorflow.python.ops import math_ops
-from tf_mrnn_model import mRNNModel
+from mrnn_model import mRNNModel
 from helper import *
 from config import *
 
 
 logger = logging.getLogger('ExpMscoco')
 formatter_log = "[%(asctime)s - %(filename)s:line %(lineno)4s] %(message)s"
-logging.basicConfig(
-  format=formatter_log,
-  datefmt='%d %b %H:%M:%S')
+logging.basicConfig( format=formatter_log, datefmt='%d %b %H:%M:%S')
 logger.setLevel(logging.INFO)
 
 flags = tf.flags
 
 # CPU threads
-flags.DEFINE_integer(
-  "ses_threads", 2, 
-  "Tensorflow CPU session threads to use"
-  )
+flags.DEFINE_integer( "ses_threads", 2,  "Tensorflow CPU session threads to use" )
 # Training data
-flags.DEFINE_string(
-  "anno_files_path", 
-  "datasets/ms_coco/mscoco_annos/"
-  "anno_list_mscoco_trainModelVal_m_RNN.npy",
+flags.DEFINE_string( "anno_files_path", "datasets/ms_coco/mscoco_anno_files/" "anno_list_mscoco_trainModelVal_m_RNN.npy",
   "Training file annotations, multipy files should be seperated by ':'"
   )
 # Model paths
-flags.DEFINE_string(
-  "model_root", 
-  "./cache/models/mscoco", 
-  "root of the tf mRNN model"
-  )
-flags.DEFINE_string(
-  "model_name", 
-  "mrnn_LSTM_mscoco", 
-  "name of the model"
-  )
+flags.DEFINE_string( "model_root",  "./cache/models/mscoco",  "root of the tf mRNN model" )
+flags.DEFINE_string( "model_name",  "mrnn_LSTM_mscoco",  "name of the model" )
 # Vocabulary path
-flags.DEFINE_string(
-  "vocab_path", 
-  "cache/dctionary/mscoco_mc3_vocab", 
-  "path of the vocabulary file for the tf mRNN model"
-  )
+flags.DEFINE_string( "vocab_path", "cache/dctionary/mscoco_mc3_vocab", "path of the vocabulary file for the tf mRNN model" )
 # Visual feature path
-flags.DEFINE_string(
-  "vf_dir", 
-  "cache/mscoco_image_features/inception_v3", 
-  "directory for the visual feature"
-  )
+flags.DEFINE_string( "vf_dir", "cache/mscoco_image_features/inception_v3", "directory for the visual feature" )
 # Pre-trained model
-flags.DEFINE_string(
-  "pre_trained_model_path", 
-  "", 
-  "path of the pre_trained model, if empty will train from scratch.")
+flags.DEFINE_string( "pre_trained_model_path",  "",  "path of the pre_trained model, if empty will train from scratch.")
 
 
 FLAGS = flags.FLAGS
 
 
-def run_epoch(session, iters_done, config, models, data_provider, 
-    verbose=False):
+def run_epoch(session, iters_done, config, models, data_provider, verbose=False):
   """Runs the model on the given data."""
   start_time = time.time()
   costs = 0.0
   iters = 0
   
   # Determine the learning rate with lr decay
-  lr_decay_dstep = max(0, 
-      (iters_done - config.lr_decay_keep) // config.lr_decay_iter)
+  lr_decay_dstep = max(0,  (iters_done - config.lr_decay_keep) // config.lr_decay_iter)
   lr_decay = config.lr_decay ** lr_decay_dstep
   for m in models:
     m.assign_lr(session, config.learning_rate * lr_decay)
   # m.assign_lr(session, config.learning_rate * lr_decay)
     
-  for step, (ind_buc, x, y, vf, fg, sl) in enumerate(
-      data_provider.generate_batches(config.batch_size, config.buckets)):
+  for step, (ind_buc, x, y, vf, fg, sl) in enumerate(data_provider.generate_batches(config.batch_size, config.buckets)):
     # update the lr if necessary
-    lr_decay_dstep_cur = max(0, 
-        (iters_done + step - config.lr_decay_keep) // config.lr_decay_iter)
+    lr_decay_dstep_cur = max(0, (iters_done + step - config.lr_decay_keep) // config.lr_decay_iter)
     if lr_decay_dstep_cur > lr_decay_dstep:
       lr_decay_dstep = lr_decay_dstep_cur
       lr_decay = config.lr_decay ** lr_decay_dstep
@@ -115,11 +84,13 @@ def run_epoch(session, iters_done, config, models, data_provider,
       
     # save the current model if necessary
     if (iters_done + iters) % config.num_iter_save == 0:
-      models[0].saver.save(session, os.path.join(m.variable_dir, 
-          'model_%d.ckpt' % (iters_done + iters)))
+      models[0].saver.save(session, os.path.join(m.variable_dir, 'model_%d.ckpt' % (iters_done + iters)))
       logger.info("Model saved with itereation %d", iters_done + iters)
 
-  return (costs / iters, iters_done + iters)
+  if not iters == 0:
+    return (costs / iters, iters_done + iters)
+  else:
+    return (0, iters_done + iters)
 
 
 def main(unused_args):
@@ -128,11 +99,8 @@ def main(unused_args):
   config = TrainConfig()
 
   # Start model training
-  with tf.Graph().as_default(), tf.Session(config=tf.ConfigProto(
-    intra_op_parallelism_threads=FLAGS.ses_threads)) as session:
-    
-    initializer = tf.random_uniform_initializer(-config.init_scale,
-                                                config.init_scale)
+  with tf.Graph().as_default(), tf.Session(config=tf.ConfigProto( intra_op_parallelism_threads=FLAGS.ses_threads)) as session:
+    initializer = tf.random_uniform_initializer(-config.init_scale,config.init_scale)
     assert len(config.buckets) >= 1
     assert config.buckets[-1] == config.max_num_steps
     
@@ -174,8 +142,7 @@ def main(unused_args):
       FLAGS.vocab_path, config.vocab_size, FLAGS.vf_dir, config.vf_size)
     
     for i in range(config.num_epoch):
-      train_cost, iters_done = run_epoch(session, iters_done, config, models, 
-        data_provider, verbose=True)
+      train_cost, iters_done = run_epoch(session, iters_done, config, models, data_provider, verbose=True)
       logger.info("Train cost for epoch %d is %.3f" % (i, train_cost))
     
     # Save final copy of the model

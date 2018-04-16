@@ -52,13 +52,13 @@ target/
 # Specified for project
 *~
 
-cache/dctionary/*
+#cache/dctionary/*
 cache/models/*
 cache/mscoco_image_features/*
-datasets/ms_coco/*
+#datasets/ms_coco/*
 .ipynb_checkpoints/*
 .gitattributes
-external/tf_cnn_models/*
-trained_models/ms_coco/*
+#external/tf_cnn_models/*
+#trained_models/ms_coco/*
 *.ipynb
 results/*

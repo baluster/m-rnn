@@ -57,7 +57,7 @@ class mRNNModel(object):
     if config.rnn_type == 'GRU':
       rnn_cell_basic = tf.contrib.rnn.GRUCell(rnn_size)
     elif config.rnn_type == 'LSTM':
-      rnn_cell_basic = tf.contrib.rnn.LSTMCell(rnn_size)
+      rnn_cell_basic = tf.contrib.rnn.LSTMCell(rnn_size, forget_bias=0.0, state_is_tuple=True, reuse=tf.get_variable_scope().reuse)
     else:
       raise NameError("Unknown rnn type %s!" % config.rnn_type)
     if is_training and config.keep_prob_rnn < 1:
@@ -92,8 +92,9 @@ class mRNNModel(object):
 
       inputs = [tf.squeeze(input_, [1]) 
         for input_ in tf.split(inputs, num_steps, 1)]
-      outputs_rnn, state = tf.contrib.rnn.static_rnn(cell, inputs, 
-        initial_state=initial_state, 
+
+      outputs_rnn, state = tf.contrib.rnn.static_rnn(cell, inputs,
+        initial_state=initial_state,
         sequence_length=self._seq_lens)
 
       self._final_state = state
