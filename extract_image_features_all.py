@@ -36,10 +36,8 @@ if __name__ == '__main__':
     anno_path = os.path.join(mscoco_root, 'mscoco_annos', anno_file_name)
     annos = np.load(anno_path).tolist()
     for (ind_a, anno) in enumerate(annos):
-      image_path = os.path.join(mscoco_root, 'mscoco_images', anno['file_path'],
-          anno['file_name'])
-      feat_path = os.path.join(feat_dir, anno['file_path'],
-          anno['file_name'].split('.')[0] + '.txt')
+      image_path = os.path.join(mscoco_root, 'mscoco_images', anno['file_path'], anno['file_name'])
+      feat_path = os.path.join(feat_dir, anno['file_path'], anno['file_name'].split('.')[0] + '.txt')
           
       if flag_ignore_exists and os.path.exists(feat_path):
         logger.info('%d/%d exists for %s', ind_a+1, len(annos), anno_file_name)

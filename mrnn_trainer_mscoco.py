@@ -146,8 +146,7 @@ def main(unused_args):
       logger.info("Train cost for epoch %d is %.3f" % (i, train_cost))
     
     # Save final copy of the model
-    models[0].saver.save(session, os.path.join(m.variable_dir, 
-      'model_%d.ckpt' % iters_done))
+    models[0].saver.save(session, os.path.join(m.variable_dir, 'model_%d.ckpt' % iters_done))
 
 
 if __name__ == "__main__":
